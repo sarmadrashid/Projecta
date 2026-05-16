@@ -9,6 +9,7 @@ const sendEmail = async function (options) {
       link: "https://projecta.vercel.app",
     },
   })
+  console.log("Sending email to: ", options.MailgenContent)
   const emailTextual = mailGenerator.generatePlaintext(options.MailgenContent)
   const emailHtml = mailGenerator.generate(options.MailgenContent)
   const transporter = nodemailer.createTransport({
@@ -54,6 +55,7 @@ const emailVerficationMailgenContent = function (username, verificationURL) {
         "Need help, or have questions? Just reply to this email, we'd love to help.",
     },
   }
+  return email
 }
 
 const passwordResetMailgenContent = function (username, passwordResetURL) {
@@ -74,6 +76,7 @@ const passwordResetMailgenContent = function (username, passwordResetURL) {
         "Need help, or have questions? Just reply to this email, we'd love to help.",
     },
   }
+  return email
 }
 
 export {

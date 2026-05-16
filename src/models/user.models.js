@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose"
 import bcrypt from "bcrypt"
-
+import jwt from "jsonwebtoken"
+import crypto from "crypto"
 const userSchema = Schema(
   {
     username: {
@@ -20,7 +21,6 @@ const userSchema = Schema(
     },
     fullname: {
       type: String,
-      lowercase: true,
       required: true,
     },
     avatar: {
@@ -59,16 +59,47 @@ const userSchema = Schema(
   { timestamps: true },
 )
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
-    return next()
+    return
   }
   this.password = await bcrypt.hash(this.password, 10)
-  next()
 })
 
 userSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password)
 }
 
-export const User = new mongoose.model("User", userSchema)
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      id: this._id,
+      email: this.email,
+      username: this.username,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: `${process.env.ACCESS_TOKEN_EXPIRY}` },
+  )
+}
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      id: this._id,
+      email: this.email,
+      username: this.username,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: `${process.env.REFRESH_TOKEN_EXPIRY}` },
+  )
+}
+userSchema.methods.generateTemporaryToken = function () {
+  const unhashedToken = crypto.randomBytes(32).toString("hex")
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(unhashedToken)
+    .digest("hex")
+  const TokenExpiry = Date.now() + 20 * 60 * 1000
+
+  return { unhashedToken, hashedToken, TokenExpiry }
+}
+export const User = mongoose.model("User", userSchema)
