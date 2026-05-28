@@ -1,6 +1,6 @@
 import { body } from "express-validator"
 
-const registerUserValidator = (req, res, next) => {
+const registerUserValidator = () => {
   return [
     body("email")
       .trim()
@@ -24,7 +24,7 @@ const registerUserValidator = (req, res, next) => {
   ]
 }
 
-const loginUserValidator = (req, res, next) => {
+const loginUserValidator = () => {
   return [
     body("email")
       .trim()
@@ -35,7 +35,7 @@ const loginUserValidator = (req, res, next) => {
     body("password").trim().notEmpty().withMessage("Password is required"),
   ]
 }
-const forgotPasswordValidator = (req, res, next) => {
+const forgotPasswordValidator = () => {
   return [
     body("email")
       .trim()
@@ -45,7 +45,7 @@ const forgotPasswordValidator = (req, res, next) => {
       .withMessage("Email is Invalid"),
   ]
 }
-const changePasswordValidator = (req, res, next) => {
+const changePasswordValidator = () => {
   return [
     body("currentPassword")
       .trim()
@@ -57,7 +57,7 @@ const changePasswordValidator = (req, res, next) => {
       .withMessage("New p  assword is required"),
   ]
 }
-const resetPasswordValidator = (req, res, next) => {
+const resetPasswordValidator = () => {
   return [
     body("newPassword").trim().notEmpty().withMessage("Password is required"),
   ]

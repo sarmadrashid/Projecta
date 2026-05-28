@@ -35,7 +35,7 @@ router
   .post(resetPasswordValidator(), validator, resetPassword)
 
 // Secured routes
-router.route("/logout").get(verifyJWT, logoutUser)
+router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/current-user").get(verifyJWT, getCurrentUser)
 router
   .route("/resend-email-verification")

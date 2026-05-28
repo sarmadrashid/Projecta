@@ -2,8 +2,13 @@ import ApiResponse from "../utils/api-response.js"
 import asyncHandler from "../utils/async-handler.js"
 import { User } from "../models/user.models.js"
 import ApiError from "../utils/api-error.js"
-import { sendEmail, emailVerficationMailgenContent } from "../utils/mail.js"
-import { useReducer } from "react"
+import {
+  sendEmail,
+  emailVerficationMailgenContent,
+  passwordResetMailgenContent,
+} from "../utils/mail.js"
+import crypto from "crypto"
+import jwt from "jsonwebtoken"
 
 const generateAccessandRefreshToken = async (user_id) => {
   try {
@@ -153,7 +158,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 const verifyEmail = asyncHandler(async (req, res) => {
-  const verificationToken = req.params
+  const verificationToken = req.params.verificationToken
   if (!verificationToken) {
     throw new ApiError(404, "Verification token is not found", {})
   }
@@ -228,7 +233,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Refresh token is expired", {})
     }
     const { accessToken, refreshToken: newRefreshToken } =
-      user.generateAccessToken()
+      user.generateAccessTokenAndRefreshToken(user._id)
     const options = {
       httpOnly: true,
       secure: true,
@@ -261,13 +266,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
   }
   const { unhashedToken, hashedToken, TokenExpiry } =
     user.generateTemporaryToken()
-  user.passwordResetToken = hashedToken
-  user.passwordResetTokenExpiry = TokenExpiry
+  user.forgotPasswordToken = hashedToken
+  user.forgotPasswordTokenExpiry = TokenExpiry
   await user.save({ validateBeforeSave: false })
   await sendEmail({
     email: user?.email,
     subject: "Password Forgot Request",
-    MailgenContent: forgotPasswordMailgenContent(
+    MailgenContent: passwordResetMailgenContent(
       user.username,
       `${req.protocol}://${req.get("host")}/api/v1/auth/forgot-password/${unhashedToken}`,
     ),
@@ -305,14 +310,9 @@ const changePassword = asyncHandler(async (req, res) => {
   const userID = req.user._id
   const user = await User.findById(req.user._id)
 
-  user
-    .comparePassword(currentPassword)
-    .then(() => {
-      user.password = newPassword
-    })
-    .catch((err) => {
-      throw new ApiError(401, "Enter valid current password", [err])
-    })
+  const isValid = await user.comparePassword(currentPassword)
+  if (!isValid) throw new ApiError(401, "Enter valid current password", [])
+  user.password = newPassword
   await user.save({ validateBeforeSave: false })
   return res
     .status(200)
