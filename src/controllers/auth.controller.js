@@ -223,21 +223,24 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET,
+      `${process.env.REFRESH_TOKEN_SECRET}`,
     )
-    const user = await User.findById(decodedToken._id)
+    const decodedUserId = decodedToken.id
+    const user = await User.findById(decodedUserId)
     if (!user) {
       throw new ApiError(404, "User not found", {})
     }
     if (user?.refreshToken !== incomingRefreshToken) {
       throw new ApiError(401, "Refresh token is expired", {})
     }
-    const { accessToken, refreshToken: newRefreshToken } =
-      user.generateAccessTokenAndRefreshToken(user._id)
+
     const options = {
       httpOnly: true,
       secure: true,
     }
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessandRefreshToken(user.id)
+
     user.refreshToken = newRefreshToken
     await user.save({ validateBeforeSave: false })
     return res
