@@ -9,9 +9,14 @@ import {
   removeProjectMember,
   updateMemberRole,
   updateProject,
+  getProjects,
 } from "../controllers/project.controller.js"
 import { validateProjectPermission } from "../middlewares/permissionValidator.middleware.js"
-import { addProjectValidator } from "../validators/index.js"
+import { validator } from "../middlewares/validator.middleware.js"
+import {
+  addProjectMemberValidator,
+  addProjectValidator,
+} from "../validators/index.js"
 import { AvailableUserRoles, UserRolesEnum } from "../constant.js"
 
 const router = Router()
@@ -20,30 +25,30 @@ router
   .route("/")
   .get(getProjects)
   .post(addProjectValidator(), validator, createProject)
+
 router
   .route("/:projectId")
   .get(validateProjectPermission(AvailableUserRoles), getProjectById)
   .put(
     validateProjectPermission([UserRolesEnum.ADMIN]),
-    createProjectValidator(),
+    addProjectValidator(),
     validator,
     updateProject,
   )
   .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteProject)
-router.route("/:projectId/members").get(getProjectMembers)
+
 router
-  .route("/:projectId/members/:userId")
+  .route("/:projectId/members")
+  .get(getProjectMembers)
   .post(
-    verifyJWT,
-    validateProjectPermission(["Admin"]),
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    addProjectMemberValidator(),
     validator,
     addProjectMember,
   )
 router
   .route("/:projectId/members/:userId")
-  .put(verifyJWT, validateProjectPermission(["Admin"]), updateMemberRole)
-router
-  .route("/:projectId/members/:userId")
-  .delete(verifyJWT, validateProjectPermission(["Admin"]), removeProjectMember)
+  .put(validateProjectPermission([UserRolesEnum.ADMIN]), updateMemberRole)
+  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), removeProjectMember)
 
 export default router
