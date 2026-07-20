@@ -5,7 +5,6 @@ const subtaskSchema = new Schema(
   {
     title: {
       type: String,
-      unique: true,
       required: true,
     },
     description: {
@@ -31,3 +30,7 @@ const subtaskSchema = new Schema(
     timestamps: true,
   },
 )
+subTaskSchema.index({
+  task: 1,
+})
+export const SubTask = mongoose.model("SubTask", subtaskSchema)

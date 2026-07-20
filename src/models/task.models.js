@@ -22,10 +22,11 @@ const taskSchema = new Schema(
       default: TaskStatusEnum.TO_DO,
       required: true,
     },
-    attachment: {
-      types: [
+    attachments: {
+      type: [
         {
           url: String,
+          path: String,
           mimetype: String,
           size: Number,
         },
@@ -47,5 +48,7 @@ const taskSchema = new Schema(
     timestamps: true,
   },
 )
-
+taskSchema.index({
+  project: 1,
+})
 export const Task = mongoose.model("Task", taskSchema)

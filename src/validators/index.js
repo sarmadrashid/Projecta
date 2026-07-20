@@ -1,5 +1,5 @@
 import { body } from "express-validator"
-import { AvailableUserRoles } from "../constant.js"
+import { AvailableTaskStatuses, AvailableUserRoles } from "../constant.js"
 
 const registerUserValidator = () => {
   return [
@@ -13,14 +13,20 @@ const registerUserValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Username is required")
-      .isLowercase()
-      .withMessage("Username must be in lower case")
       .isLength({ min: 3 })
-      .withMessage("Username must be at least 3 characters long"),
+      .withMessage("Username must be at least 3 characters long")
+      .matches(/^[a-z0-9_]+$/)
+      .withMessage("Username must be in lowercase without spaces and Symbols"),
     body("password")
       .trim()
       .notEmpty()
-      .withMessage("Password must not be empty"),
+      .withMessage("Password must not be empty")
+      .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/)
+      .withMessage("Password must contain uppercase, lowercase and number")
+      .isLength({ min: 8, max: 14 })
+      .withMessage(
+        "Password must be at least 8 characters long and not exceed 14 characters",
+      ),
     body("fullname").optional().trim(),
   ]
 }
@@ -33,7 +39,10 @@ const loginUserValidator = () => {
       .withMessage("Email is required")
       .isEmail()
       .withMessage("Email is Invalid"),
-    body("password").trim().notEmpty().withMessage("Password is required"),
+    body("password")
+      .trim()
+      .notEmpty()
+      .withMessage("Password must not be empty"),
   ]
 }
 const forgotPasswordValidator = () => {
@@ -51,24 +60,62 @@ const changePasswordValidator = () => {
     body("currentPassword")
       .trim()
       .notEmpty()
-      .withMessage("Current password is required"),
+      .withMessage("Current password must not be empty")
+      .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/)
+      .withMessage(
+        "Current password must contain uppercase, lowercase and number",
+      )
+      .isLength({ min: 8, max: 14 })
+      .withMessage(
+        "Current Password must be at least 8 characters long and not exceed 14 characters",
+      ),
     body("newPassword")
       .trim()
       .notEmpty()
-      .withMessage("New p  assword is required"),
+      .withMessage("New password must not be empty")
+      .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/)
+      .withMessage("New password must contain uppercase, lowercase and number")
+      .isLength({ min: 8, max: 14 })
+      .withMessage(
+        "New password must be at least 8 characters long and not exceed 14 characters",
+      ),
   ]
 }
 const resetPasswordValidator = () => {
   return [
-    body("newPassword").trim().notEmpty().withMessage("Password is required"),
+    body("newPassword")
+      .trim()
+      .notEmpty()
+      .withMessage("New password must not be empty")
+      .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/)
+      .withMessage("New password must contain uppercase, lowercase and number")
+      .isLength({ min: 8, max: 14 })
+      .withMessage(
+        "New password must be at least 8 characters long and not exceed 14 characters",
+      ),
   ]
 }
 const addProjectValidator = () => {
   return [
-    body("title").trim().notEmpty().withMessage("Project name is required"),
-    body("description").optional().trim(),
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Project name is required")
+      .isLength({ min: 3, max: 100 })
+      .withMessage(
+        "Title must be at least 3 characters long and not exceed 100 characters",
+      ),
+    body("description")
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required")
+      .isLength({ min: 3, max: 1500 })
+      .withMessage(
+        "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
+      ),
   ]
 }
+
 const addProjectMemberValidator = () => {
   return [
     body("email")
@@ -84,6 +131,95 @@ const addProjectMemberValidator = () => {
       .withMessage("Role is invalid"),
   ]
 }
+const updateMemberRoleValidator = () => {
+  return [
+    body("role")
+      .notEmpty()
+      .withMessage("Role is required")
+      .isIn(AvailableUserRoles)
+      .withMessage("Role is invalid"),
+  ]
+}
+
+const addTaskValidator = () => {
+  return [
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Title is required")
+      .isLength({ min: 3, max: 180 })
+      .withMessage(
+        "Title must be at least 3 characters long and not exceed 180 characters",
+      ),
+    body("description")
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required")
+      .isLength({ min: 3, max: 1500 })
+      .withMessage(
+        "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
+      ),
+    body("status")
+      .trim()
+      .notEmpty()
+      .withMessage("Status is required")
+      .isIn(AvailableTaskStatuses)
+      .withMessage("Status is invalid"),
+    body("assignedTo")
+      .trim()
+      .notEmpty()
+      .withMessage("Assigned To is required")
+      .isMongoId()
+      .withMessage("Assigned To must be a valid MongoDB ObjectId"),
+  ]
+}
+
+const addSubtaskValidator = () => {
+  return [
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Title is required")
+      .isLength({ min: 3, max: 180 })
+      .withMessage(
+        "Title must be at least 3 characters long and not exceed 180 characters",
+      ),
+    body("description")
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required")
+      .isLength({ min: 3, max: 1500 })
+      .withMessage(
+        "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
+      ),
+  ]
+}
+
+const updateSubtaskValidator = () => {
+  return [
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Title is required")
+      .isLength({ min: 3, max: 180 })
+      .withMessage(
+        "Title must be at least 3 characters long and not exceed 180 characters",
+      ),
+    body("description")
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required")
+      .isLength({ min: 3, max: 1500 })
+      .withMessage(
+        "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
+      ),
+    body("isCompleted")
+      .isBoolean()
+      .withMessage("Completed status should be in boolean")
+      .notEmpty()
+      .withMessage("Completed status is required"),
+  ]
+}
 export {
   registerUserValidator,
   loginUserValidator,
@@ -92,4 +228,8 @@ export {
   resetPasswordValidator,
   addProjectValidator,
   addProjectMemberValidator,
+  updateMemberRoleValidator,
+  addTaskValidator,
+  addSubtaskValidator,
+  updateSubtaskValidator,
 }

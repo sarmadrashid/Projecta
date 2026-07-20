@@ -8,19 +8,18 @@ export const validateProjectPermission = (roles = []) => {
   return asyncHandler(async (req, res, next) => {
     const { projectId } = req.params
 
-    if (!projectId) {
-      throw new ApiError(404, "Project Id is missing", [])
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      throw new ApiError(400, "Invalid Project Id", [])
     }
 
     const projectMember = await ProjectMember.findOne({
-      user: new mongoose.Types.ObjectId(req.user._id),
-      project: new mongoose.Types.ObjectId(projectId),
+      user: req.user._id,
+      project: projectId,
     })
     if (!projectMember) {
       throw new ApiError(404, "Project Member Not Found", [])
     }
     const givenRole = projectMember?.role
-    req.user.role = givenRole
 
     if (!roles.includes(givenRole)) {
       throw new ApiError(
