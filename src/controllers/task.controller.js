@@ -7,6 +7,7 @@ import { AvailableTaskStatuses } from "../constant.js"
 import { Task } from "../models/task.models.js"
 import { UserRolesEnum, AvailableUserRoles } from "../constant.js"
 import { SubTask } from "../models/subtask.models.js"
+import { upload } from "../middlewares/multer.middleware.js"
 
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params
@@ -376,3 +377,16 @@ const deleteSubTask = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Subtask deleted successfully"))
 })
+
+export {
+  getTasks,
+  createTask,
+  getTaskDetails,
+  updateTask,
+  deleteTask,
+  addAttachmentsToTask,
+  removeAttachmentFromTask,
+  createSubTask,
+  updateSubTask,
+  deleteSubTask,
+}

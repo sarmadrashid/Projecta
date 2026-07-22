@@ -33,4 +33,12 @@ import projectRoutes from "./routes/project.routes.js"
 
 app.use("/api/v1/projects", projectRoutes)
 
+import taskRoutes from "./routes/task.routes.js"
+
+app.use("/api/v1/tasks/", taskRoutes)
+
+import noteRoutes from "./routes/notes.routes.js"
+
+app.use("/api/v1/notes/", noteRoutes)
+
 export { app }

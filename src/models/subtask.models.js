@@ -30,7 +30,7 @@ const subtaskSchema = new Schema(
     timestamps: true,
   },
 )
-subTaskSchema.index({
+subtaskSchema.index({
   task: 1,
 })
 export const SubTask = mongoose.model("SubTask", subtaskSchema)

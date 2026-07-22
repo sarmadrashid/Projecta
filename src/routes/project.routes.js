@@ -16,6 +16,7 @@ import { validator } from "../middlewares/validator.middleware.js"
 import {
   addProjectMemberValidator,
   addProjectValidator,
+  updateMemberRoleValidator,
 } from "../validators/index.js"
 import { AvailableUserRoles, UserRolesEnum } from "../constant.js"
 
@@ -48,7 +49,12 @@ router
   )
 router
   .route("/:projectId/members/:userId")
-  .put(validateProjectPermission([UserRolesEnum.ADMIN]), updateMemberRole)
+  .put(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    updateMemberRoleValidator(),
+    validator,
+    updateMemberRole,
+  )
   .delete(validateProjectPermission([UserRolesEnum.ADMIN]), removeProjectMember)
 
 export default router

@@ -15,27 +15,37 @@ const createProject = asyncHandler(async (req, res) => {
   if (!title || !description) {
     throw new ApiError(400, "Title and description are required", [])
   }
-
+  let project
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
-    const project = await Project.create({
-      title,
-      description,
-      createdBy: new mongoose.Types.ObjectId(req.user._id),
-    })
-
-    await ProjectMember.create({
-      user: new mongoose.Types.ObjectId(req.user._id),
-      project: new mongoose.Types.ObjectId(project._id),
-      role: UserRolesEnum.ADMIN,
-    })
+    project = await Project.create(
+      [
+        {
+          title,
+          description,
+          createdBy: new mongoose.Types.ObjectId(req.user._id),
+        },
+      ],
+      { session },
+    )
+    await ProjectMember.create(
+      [
+        {
+          user: new mongoose.Types.ObjectId(req.user._id),
+          project: new mongoose.Types.ObjectId(project._id),
+          role: UserRolesEnum.ADMIN,
+        },
+      ],
+      { session },
+    )
     await session.commitTransaction()
   } catch (error) {
     await session.abortTransaction()
     if (error instanceof ApiError) {
       throw error
     }
+    console.log(error)
     throw new ApiError(500, "Failed to create the project", [error.message])
   } finally {
     await session.endSession()
@@ -43,7 +53,7 @@ const createProject = asyncHandler(async (req, res) => {
 
   return res
     .status(201)
-    .json(new ApiResponse(201, project, "Project created successfully"))
+    .json(new ApiResponse(201, { project }, "Project created successfully"))
 })
 const updateProject = asyncHandler(async (req, res) => {
   const { title, description } = req.body

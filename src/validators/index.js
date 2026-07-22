@@ -220,6 +220,20 @@ const updateSubtaskValidator = () => {
       .withMessage("Completed status is required"),
   ]
 }
+
+const addNoteValidator = () => {
+  return [
+    body("content")
+      .trim()
+      .notEmpty()
+      .withMessage("Content is required")
+      .isLength({ min: 3, max: 1500 })
+      .withMessage(
+        "Content max character limit mustn't exceeded from 1500 and should be greater than 3",
+      ),
+  ]
+}
+
 export {
   registerUserValidator,
   loginUserValidator,
@@ -232,4 +246,5 @@ export {
   addTaskValidator,
   addSubtaskValidator,
   updateSubtaskValidator,
+  addNoteValidator,
 }

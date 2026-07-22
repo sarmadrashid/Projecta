@@ -10,6 +10,16 @@ import {
 import crypto from "crypto"
 import jwt from "jsonwebtoken"
 
+const buildAvatar = (file) => {
+  if (!file) {
+    return undefined
+  }
+
+  return {
+    url: "",
+    localpath: file.path,
+  }
+}
 const generateAccessandRefreshToken = async (user_id) => {
   try {
     const user = await User.findById(user_id)
@@ -33,18 +43,21 @@ const generateAccessandRefreshToken = async (user_id) => {
   }
 }
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullname, username, email, password, role } = req.body
+
+  const { fullname, username, email, password } = req.body
   const findUser = await User.findOne({
     $or: [{ username }, { email }],
   })
   if (findUser) {
     throw new ApiError(409, "User with username or email already existed", [])
   }
+  const avatar = buildAvatar(req.file)
   const user = await User.create({
     username,
     fullname,
     email,
     password,
+    avatar,
     isEmailVerified: false,
   })
   if (!user) {

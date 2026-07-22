@@ -20,10 +20,18 @@ import {
 } from "../validators/index.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { validator } from "../middlewares/validator.middleware.js"
-const router = Router()
+import { upload } from "../middlewares/multer.middleware.js"
 
+const router = Router()
 // Unsecured routes
-router.route("/register").post(registerUserValidator(), validator, registerUser)
+router
+  .route("/register")
+  .post(
+    upload.single("avatar"),
+    registerUserValidator(),
+    validator,
+    registerUser,
+  )
 router.route("/login").post(loginUserValidator(), validator, loginUser)
 router.route("/verify-email/:verificationToken").get(verifyEmail)
 router.route("/refresh-token").post(refreshAccessToken)
