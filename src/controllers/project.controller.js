@@ -19,7 +19,7 @@ const createProject = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
-    project = await Project.create(
+    ;[project] = await Project.create(
       [
         {
           title,
@@ -205,7 +205,6 @@ const getProjects = asyncHandler(async (req, res) => {
       },
     },
   ])
-
   return res
     .status(200)
     .json(new ApiResponse(200, projects, "Projects fetched successfully"))
@@ -316,22 +315,11 @@ const addProjectMember = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project Not Found", [])
   }
   try {
-    await ProjectMember.findByIdAndUpdate(
-      {
-        user: user._id,
-        project: new mongoose.Types.ObjectId(projectId),
-      },
-
-      {
-        user: user._id,
-        project: new mongoose.Types.ObjectId(projectId),
-        role: role,
-      },
-      {
-        new: true,
-        upsert: true,
-      },
-    )
+    await ProjectMember.create({
+      user: new mongoose.Types.ObjectId(user._id),
+      project: new mongoose.Types.ObjectId(projectId),
+      role,
+    })
   } catch (error) {
     if (error.code === 11000) {
       throw new ApiError(409, "User is already a member of this project", [

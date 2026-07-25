@@ -68,8 +68,8 @@ router
     createSubTask,
   )
 router
-  .route("/:projectId/t/:taskId/subtasks/:subTaskId")
-  .put(
+  .route("/:projectId/t/:taskId/subtasks/:subtaskId")
+  .patch(
     validateProjectPermission(adminRoles),
     updateSubtaskValidator(),
     validator,

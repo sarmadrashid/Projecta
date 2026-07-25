@@ -17,7 +17,7 @@ export const validateProjectPermission = (roles = []) => {
       project: projectId,
     })
     if (!projectMember) {
-      throw new ApiError(404, "Project Member Not Found", [])
+      throw new ApiError(403, "You are not a member of this project", [])
     }
     const givenRole = projectMember?.role
 

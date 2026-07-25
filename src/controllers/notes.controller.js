@@ -41,7 +41,7 @@ const getNoteById = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, { note }, "Note FetchedSuccessfully"))
+    .json(new ApiResponse(200, { note }, "Note Fetched Successfully"))
 })
 
 const createNote = asyncHandler(async (req, res) => {

@@ -8,9 +8,11 @@ import { Task } from "../models/task.models.js"
 import { UserRolesEnum, AvailableUserRoles } from "../constant.js"
 import { SubTask } from "../models/subtask.models.js"
 import { upload } from "../middlewares/multer.middleware.js"
+import { Project } from "../models/project.models.js"
 
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params
+  console.log("projectId", projectId)
   const project = await Project.findById(new mongoose.Types.ObjectId(projectId))
   if (!project) {
     throw new ApiError(404, "Project not found", [])
@@ -75,7 +77,7 @@ const getTaskDetails = asyncHandler(async (req, res) => {
         from: "users",
         localField: "assignedTo",
         foreignField: "_id",
-        as: "AssignedTo",
+        as: "assignedTo",
         pipeline: [
           {
             $project: {
@@ -90,7 +92,7 @@ const getTaskDetails = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "SubTask",
+        from: "subtasks",
         localField: "_id",
         foreignField: "task",
         as: "Subtask",
@@ -125,8 +127,8 @@ const getTaskDetails = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
-        AssignedTo: {
-          $arrayElemAt: ["$AssignedTo", 0],
+        assignedTo: {
+          $arrayElemAt: ["$assignedTo", 0],
         },
       },
     },
@@ -255,31 +257,37 @@ const removeAttachmentFromTask = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Attachment removed successfully"))
 })
 const deleteTask = asyncHandler(async (req, res) => {
-  const { taskId } = req.params
+  const { taskId, projectId } = req.params
 
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     throw new ApiError(400, "Task Id is required", [])
+  }
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new ApiError(400, "Project Id is required", [])
   }
   let attachments = []
   const session = await mongoose.startSession()
 
   try {
     session.startTransaction()
-    const task = await Task.findById(taskId).session(session)
-    if (!task) {
-      throw new ApiError(404, "Task not found", [])
-    }
-    attachments = task.attachments
-    await SubTask.deleteMany(
+
+    const deletedTask = await Task.findOneAndDelete(
       {
-        task: task._id,
+        _id: taskId,
+        project: projectId,
       },
       { session },
     )
-    const deletedTask = await Task.findByIdAndDelete(taskId, { session })
     if (!deletedTask) {
       throw new ApiError(404, "Task not found", [])
     }
+    attachments = deletedTask.attachments ?? []
+    await SubTask.deleteMany(
+      {
+        task: taskId,
+      },
+      { session },
+    )
     await session.commitTransaction()
   } catch (error) {
     await session.abortTransaction()
@@ -305,7 +313,7 @@ const deleteTask = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Task deleted successfully"))
 })
 const createSubTask = asyncHandler(async (req, res) => {
-  const { title, description } = req.body
+  const { title, description, isCompleted } = req.body
   const { taskId } = req.params
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     throw new ApiError(400, "Task Id is required", [])
@@ -317,7 +325,7 @@ const createSubTask = asyncHandler(async (req, res) => {
   const subtask = await SubTask.create({
     title,
     description,
-    isCompleted: false,
+    isCompleted: isCompleted,
     task: new mongoose.Types.ObjectId(taskId),
     createdBy: new mongoose.Types.ObjectId(req.user._id),
   })
@@ -328,6 +336,8 @@ const createSubTask = asyncHandler(async (req, res) => {
 const updateSubTask = asyncHandler(async (req, res) => {
   const { title, description, isCompleted } = req.body
   const { taskId, subtaskId } = req.params
+  console.log(taskId)
+  console.log(subtaskId)
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     throw new ApiError(400, "Task Id is required", [])
   }

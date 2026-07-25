@@ -192,12 +192,18 @@ const addSubtaskValidator = () => {
       .withMessage(
         "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
       ),
+    body("isCompleted")
+      .isBoolean()
+      .withMessage("Completed status should be in boolean")
+      .notEmpty()
+      .withMessage("Completed status is required"),
   ]
 }
 
 const updateSubtaskValidator = () => {
   return [
     body("title")
+      .optional()
       .trim()
       .notEmpty()
       .withMessage("Title is required")
@@ -206,6 +212,7 @@ const updateSubtaskValidator = () => {
         "Title must be at least 3 characters long and not exceed 180 characters",
       ),
     body("description")
+      .optional()
       .trim()
       .notEmpty()
       .withMessage("Description is required")
@@ -214,6 +221,7 @@ const updateSubtaskValidator = () => {
         "Description max character limit mustn't exceeded from 1500 and should be greater than 3",
       ),
     body("isCompleted")
+      .optional()
       .isBoolean()
       .withMessage("Completed status should be in boolean")
       .notEmpty()
