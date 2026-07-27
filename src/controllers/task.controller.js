@@ -9,6 +9,11 @@ import { UserRolesEnum, AvailableUserRoles } from "../constant.js"
 import { SubTask } from "../models/subtask.models.js"
 import { upload } from "../middlewares/multer.middleware.js"
 import { Project } from "../models/project.models.js"
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+  deleteMultipleFromCloudinary,
+} from "../utils/cloudinary.js"
 
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params
@@ -176,81 +181,159 @@ const updateTask = asyncHandler(async (req, res) => {
 
 const addAttachmentsToTask = asyncHandler(async (req, res) => {
   const { taskId } = req.params
+
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     throw new ApiError(400, "Task Id is required", [])
   }
-  const files = req.files || []
-  const attachments = await files.map((file) => {
-    return {
-      url: `${process.env.SERVER_URL}/${file.mimetype.includes("pdf") ? "pdfs" : "images"}/${file.filename}`,
-      path: file.path,
-      mimetype: file.mimetype,
-      size: file.size,
-    }
-  })
-  const task = await Task.findByIdAndUpdate(
-    taskId,
-    {
-      $push: { attachments: { $each: attachments } },
-    },
-    {
-      new: true,
-    },
-  )
 
-  if (!task) {
-    throw new ApiError(404, "Task not found", [])
+  const files = req.files || []
+
+  if (files.length === 0) {
+    throw new ApiError(400, "Please upload at least one attachment", [])
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, task, "Attachments added successfully"))
+
+  const attachments = []
+
+  try {
+    for (const file of files) {
+      const uploaded = await uploadOnCloudinary(file.path)
+
+      attachments.push({
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+        mimetype: file.mimetype,
+        size: file.size,
+      })
+    }
+  } catch (error) {
+    await deleteMultipleFromCloudinary(attachments)
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+    console.log(error.message)
+
+    throw new ApiError(500, "Failed to upload attachments", [error.message])
+  }
+
+  const session = await mongoose.startSession()
+
+  try {
+    session.startTransaction()
+
+    const task = await Task.findByIdAndUpdate(
+      taskId,
+      {
+        $push: {
+          attachments: {
+            $each: attachments,
+          },
+        },
+      },
+      {
+        new: true,
+        session,
+      },
+    )
+
+    if (!task) {
+      throw new ApiError(404, "Task not found", [])
+    }
+
+    await session.commitTransaction()
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, task, "Attachments added successfully"))
+  } catch (error) {
+    await session.abortTransaction()
+
+    await deleteMultipleFromCloudinary(attachments)
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    throw new ApiError(500, "Failed to add attachments", [error.message])
+  } finally {
+    await session.endSession()
+  }
 })
 const removeAttachmentFromTask = asyncHandler(async (req, res) => {
   const { taskId, attachmentId } = req.params
+
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
-    throw new ApiError(400, "Task Id is required", [])
+    throw new ApiError(400, "Task Id is invalid", [])
   }
+
   if (!mongoose.Types.ObjectId.isValid(attachmentId)) {
-    throw new ApiError(400, "Attachment Id is required", [])
-  }
-  const task = await Task.findOne(
-    {
-      _id: taskId,
-      "attachments._id": attachmentId,
-    },
-    {
-      attachments: {
-        $elemMatch: {
-          _id: attachmentId,
-        },
-      },
-    },
-  )
-
-  if (!task) {
-    throw new ApiError(404, "Attachment not found", [])
+    throw new ApiError(400, "Attachment Id is invalid", [])
   }
 
-  const attachment = task.attachments[0]
+  const session = await mongoose.startSession()
+
+  let publicId = null
 
   try {
-    await fs.unlink(attachment.path)
-  } catch (err) {
-    console.error("Error while deleting file:", err.message)
-  }
+    session.startTransaction()
 
-  const updatedTask = await Task.updateOne(
-    {
-      _id: taskId,
-    },
-    {
-      $pull: {
+    const task = await Task.findOne(
+      {
+        _id: taskId,
+        "attachments._id": attachmentId,
+      },
+      {
         attachments: {
-          _id: attachmentId,
+          $elemMatch: {
+            _id: attachmentId,
+          },
         },
       },
-    },
-  )
+    ).session(session)
+
+    if (!task) {
+      throw new ApiError(404, "Attachment not found", [])
+    }
+
+    publicId = task.attachments[0].publicId
+
+    await Task.updateOne(
+      {
+        _id: taskId,
+      },
+      {
+        $pull: {
+          attachments: {
+            _id: attachmentId,
+          },
+        },
+      },
+      {
+        session,
+      },
+    )
+
+    await session.commitTransaction()
+  } catch (error) {
+    await session.abortTransaction()
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    throw new ApiError(500, "Failed to remove attachment", [error.message])
+  } finally {
+    await session.endSession()
+  }
+
+  try {
+    await deleteFromCloudinary(publicId)
+  } catch (error) {
+    console.error(
+      `Failed to delete Cloudinary file (${publicId})`,
+      error.message,
+    )
+  }
 
   return res
     .status(200)
@@ -299,13 +382,7 @@ const deleteTask = asyncHandler(async (req, res) => {
     session.endSession()
   }
   if (attachments.length > 0) {
-    for (const attachment of attachments) {
-      try {
-        await fs.unlink(attachment.path)
-      } catch (error) {
-        console.log(`Failed to delete ${attachment.path}`, error)
-      }
-    }
+    await deleteMultipleFromCloudinary(attachments)
   }
 
   return res

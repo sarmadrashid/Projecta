@@ -26,7 +26,7 @@ const userSchema = Schema(
     avatar: {
       type: {
         url: String,
-        localpath: String,
+        publicId: String,
       },
       default: {
         url: "https://placehold.co/200x200",

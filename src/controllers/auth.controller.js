@@ -9,17 +9,7 @@ import {
 } from "../utils/mail.js"
 import crypto from "crypto"
 import jwt from "jsonwebtoken"
-
-const buildAvatar = (file) => {
-  if (!file) {
-    return undefined
-  }
-
-  return {
-    url: "",
-    localpath: file.path,
-  }
-}
+import { uploadOnCloudinary } from "../utils/cloudinary.js"
 const generateAccessandRefreshToken = async (user_id) => {
   try {
     const user = await User.findById(user_id)
@@ -43,21 +33,35 @@ const generateAccessandRefreshToken = async (user_id) => {
   }
 }
 const registerUser = asyncHandler(async (req, res) => {
-
   const { fullname, username, email, password } = req.body
+
   const findUser = await User.findOne({
     $or: [{ username }, { email }],
   })
   if (findUser) {
     throw new ApiError(409, "User with username or email already existed", [])
   }
-  const avatar = buildAvatar(req.file)
+  let avatarData = {
+    url: "https://placehold.co/200x200",
+  }
+  console.log(req.files)
+  if (req.file) {
+    const uploaded = await uploadOnCloudinary(req.file.path)
+
+    if (uploaded) {
+      avatarData = {
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+      }
+    }
+  }
+  console.log(req.file)
   const user = await User.create({
     username,
     fullname,
     email,
     password,
-    avatar,
+    avatar: avatarData,
     isEmailVerified: false,
   })
   if (!user) {

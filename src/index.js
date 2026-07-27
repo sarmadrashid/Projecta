@@ -1,9 +1,9 @@
-import { app } from "./app.js"
 import dotenv from "dotenv"
-import connectDB from "./DB/db.js"
 dotenv.config({
   path: ".env",
 })
+import { app } from "./app.js"
+import connectDB from "./DB/db.js"
 
 const port = process.env.PORT
 connectDB()

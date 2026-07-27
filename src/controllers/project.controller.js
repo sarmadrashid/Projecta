@@ -9,6 +9,7 @@ import { UserRolesEnum, AvailableUserRoles } from "../constant.js"
 import { Task } from "../models/task.models.js"
 import { SubTask } from "../models/subtask.models.js"
 import fs from "fs/promises"
+import { deleteMultipleFromCloudinary } from "../utils/cloudinary.js"
 
 const createProject = asyncHandler(async (req, res) => {
   const { title, description } = req.body
@@ -143,13 +144,7 @@ const deleteProject = asyncHandler(async (req, res) => {
     await session.endSession()
   }
   if (attachments.length > 0) {
-    for (const attachment of attachments) {
-      try {
-        await fs.unlink(attachment.path)
-      } catch (error) {
-        console.log(`Failed to delete ${attachment.path}`, error)
-      }
-    }
+    await deleteMultipleFromCloudinary(attachments)
   }
   return res
     .status(200)
