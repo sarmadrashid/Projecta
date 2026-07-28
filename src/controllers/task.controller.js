@@ -42,14 +42,29 @@ const createTask = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project not found", [])
   }
   const files = req.files || []
-  const attachments = await files.map((file) => {
-    return {
-      url: `${process.env.SERVER_URL}/${file.mimetype.includes("pdf") ? "pdfs" : "images"}/${file.filename}`,
-      path: file.path,
-      mimetype: file.mimetype,
-      size: file.size,
+  const attachments = []
+
+  try {
+    for (const file of files) {
+      const uploaded = await uploadOnCloudinary(file.path)
+
+      attachments.push({
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+        mimetype: file.mimetype,
+        size: file.size,
+      })
     }
-  })
+  } catch (error) {
+    await deleteMultipleFromCloudinary(attachments)
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+    console.log(error.message)
+
+    throw new ApiError(500, "Failed to upload attachments", [error.message])
+  }
   const task = await Task.create({
     title,
     description,
