@@ -6,23 +6,23 @@ const sendEmail = async function (options) {
     theme: "default",
     product: {
       name: "Projecta",
-      link: "https://projecta.vercel.app",
+      link: "https://projecta-tiim.onrender.com",
     },
   })
   console.log("Sending email to: ", options.MailgenContent)
   const emailTextual = mailGenerator.generatePlaintext(options.MailgenContent)
   const emailHtml = mailGenerator.generate(options.MailgenContent)
   const transporter = nodemailer.createTransport({
-    host: process.env.MAILTRAP_SMTP_HOST,
-    port: process.env.MAILTRAP_SMTP_PORT,
+    host: process.env.BREVO_SMTP_HOST,
+    port: process.env.BREVO_SMTP_PORT,
     auth: {
-      user: process.env.MAILTRAP_SMTP_USER,
-      pass: process.env.MAILTRAP_SMTP_PASS,
+      user: process.env.BREVO_SMTP_USER,
+      pass: process.env.BREVO_SMTP_PASS,
     },
   })
 
   const mail = {
-    from: process.env.MAILTRAP_SMTP_USER,
+    from: "Projecta <rassarmad4@gmail.com>",
     to: options.email,
     subject: options.subject,
     text: emailTextual,
